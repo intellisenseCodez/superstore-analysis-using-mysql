@@ -1,5 +1,4 @@
--- Create the Superstore database
-CREATE DATABASE IF NOT EXISTS Superstore;
+-- Create the Superstore Relationonal database
 USE Superstore;
 
 -- Table: DimCategories

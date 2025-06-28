@@ -3,48 +3,48 @@
 INSERT INTO DimCategories (category_name)
 SELECT DISTINCT Category
 FROM 
-    RawSuperstore
+    clean_superstore
 WHERE 
      Category NOT IN (
-        SELECT Category 
+        SELECT category_name 
         FROM DimCategories
     );
     
 
+
 -- Insert distinct values of DimSubCategories with generated IDs
 INSERT INTO DimSubCategories(subcategory_name, category_id)
 SELECT 
-    s.`Sub-Category`,
+    cs.sub_category,
     c.category_id
 FROM 
-    (SELECT DISTINCT `Sub-Category`, Category FROM rawsuperstore) AS s -- distinct sub-category from raw data
+    (SELECT DISTINCT sub_category, Category FROM clean_superstore) AS cs -- distinct sub-category from raw data
 INNER JOIN
-    DimCategories AS c ON s.Category = c.category_name
+    DimCategories AS c ON cs.Category = c.category_name
 WHERE 
-    s.`Sub-Category` NOT IN (
+    cs.sub_category NOT IN (
         SELECT subcategory_name 
         FROM DimSubCategories
     ); 
     
-
-
+    
 -- Insert the distinct DimProducts with their subcategory relationships
 INSERT INTO DimProducts (product_id, product_name, subcategory_id)
 SELECT
-    r.`Product ID`,
-    r.`Product Name`,
+    cs.product_id,
+    cs.product_name,
     s.subcategory_id
 FROM 
-    (SELECT DISTINCT `Product ID`, `Product Name`, `Sub-Category` FROM rawsuperstore) as r
+    (SELECT DISTINCT product_id, product_name, sub_category FROM clean_superstore) as cs
 JOIN 
-    DimSubCategories as s ON r.`Sub-Category` = s.subcategory_name
+    DimSubCategories as s ON cs.sub_category = s.subcategory_name
 WHERE 
-	r.`Product ID` NOT IN (
+	cs.product_id NOT IN (
 		SELECT product_id 
 		FROM DimProducts
 	)
 AND
-	r.`Product Name` NOT IN (
+	cs.product_name NOT IN (
 		SELECT product_name 
 		FROM DimProducts
 	);
@@ -54,13 +54,13 @@ AND
 -- Insert the distinct DimCustomers 
 INSERT INTO DimCustomers (customer_id, customer_name, segment)
 SELECT DISTINCT 
-    `Customer ID`, 
-    `Customer Name`, 
+    customer_id, 
+    customer_name, 
     Segment
 FROM 
-    RawSuperstore
+    clean_superstore
 WHERE 
-    `Customer ID` NOT IN (
+    customer_id NOT IN (
         SELECT customer_id 
         FROM DimCustomers
     );
@@ -69,10 +69,10 @@ WHERE
 -- Insert distinct values of DimShipMode with generated IDs
 INSERT INTO DimShipMode (ship_mode)
 SELECT DISTINCT
-    `ship Mode`
-FROM RawSuperstore
+    ship_mode
+FROM clean_superstore
 WHERE 
-    `ship Mode` NOT IN (
+    ship_mode NOT IN (
         SELECT ship_mode 
         FROM DimShipMode
     );
@@ -81,13 +81,13 @@ WHERE
 -- Insert distinct values of DimLocation 
 INSERT INTO DimLocations (postal_code, city, state, region, country)
 SELECT DISTINCT
-    `Postal Code`,
+    postal_code,
     City,
     State,
     Region,
     Country
 FROM 
-    RawSuperstore
+    clean_superstore
 WHERE 
     City NOT IN (
 		SELECT city FROM DimLocations
@@ -98,19 +98,19 @@ WHERE
 -- same order were mistakenly linked to the same postal_code
 INSERT IGNORE INTO DimOrders (order_id, customer_id, order_date, ship_date, ship_mode_id, location_id)
 SELECT
-    r.`Order ID`,
-    r.`Customer ID`,
-    STR_TO_DATE(r.`Order Date`, '%d-%m-%Y') AS order_date,  -- Convert text to date
-    STR_TO_DATE(r.`Ship Date`, '%d-%m-%Y') AS ship_date,    -- Convert text to date
+    cs.order_id,
+    cs.customer_id,
+    STR_TO_DATE(cs.order_date, '%d-%m-%Y') AS order_date,  -- Convert text to date
+    STR_TO_DATE(cs.ship_date, '%d-%m-%Y') AS ship_date,    -- Convert text to date
     s.shipmode_id,
     l.location_id
 FROM 
-    (SELECT DISTINCT `Order ID`, `Customer ID`, `Order Date`, `Ship Date`, `Postal Code`, `Ship Mode` FROM rawsuperstore) AS r
-JOIN DimCustomers c ON r.`Customer ID` = c.customer_id
-JOIN DimShipMode s ON r.`Ship Mode` = s.ship_mode
-JOIN DimLocations l ON r.`Postal Code` = l.postal_code
+    (SELECT DISTINCT order_id, customer_id, order_date, ship_date, postal_code, ship_mode FROM clean_superstore) AS cs
+JOIN DimCustomers c ON cs.customer_id = c.customer_id
+JOIN DimShipMode s ON cs.ship_mode = s.ship_mode
+JOIN DimLocations l ON cs.postal_code = l.postal_code
 WHERE 
-    r.`Order ID` NOT IN (SELECT order_id FROM DimOrders);
+    cs.order_id NOT IN (SELECT order_id FROM DimOrders);
 
 
 -- Insert for FactOrderDetails
@@ -118,29 +118,26 @@ INSERT INTO FactOrderDetails(order_id, product_id, quantity, sales, discount, pr
 SELECT 
     o.order_id,
     p.product_id,
-    CAST(r.Quantity AS UNSIGNED), -- Only positive integers
-    CAST(r.Sales AS FLOAT), -- Cast Sales to FLOAT
-    CAST(r.Discount AS FLOAT), -- Cast Discount to FLOAT
-    CAST(r.Profit AS FLOAT) -- Cast Profit to FLOAT
-FROM RawSuperstore r
-JOIN DimOrders o ON r.`Order ID` = o.order_id
-JOIN DimProducts p ON r.`Product ID` = p.product_id AND p.product_name = r.`Product Name`
+    cs.Quantity,
+    cs.Sales,
+    cs.Discount,
+    cs.Profit
+FROM clean_superstore cs
+JOIN DimOrders o ON cs.order_id = o.order_id
+JOIN DimProducts p ON cs.product_id = p.product_id AND p.product_name = cs.product_name
 WHERE
-	r.`Order ID` NOT IN (SELECT order_id FROM FactOrderDetails) AND
-    r.Sales REGEXP '^[0-9]+(\\.[0-9]+)?$' AND -- Ensures Sales is numeric (integer or decimal)
-    r.Discount REGEXP '^[0-9]+(\\.[0-9]+)?$' AND -- Ensures Discount is numeric
-    r.Profit REGEXP '^[0-9]+(\\.[0-9]+)?$'; -- Ensures Profit is numeric
+	cs.order_id NOT IN (SELECT order_id FROM FactOrderDetails);
     
     
 
-select count(*) from DimCategories;  -- 3 records
-select count(*) from DimSubCategories; -- 17 records
-select count(*) from DimProducts;  -- 1894 records
-select count(*) from DimCustomers; -- 793 records
-select count(*) from DimShipMode; -- 4 records
-select count(*) from DimLocations; -- 632 records
-select count(*) from DimOrders; -- 5009 records
-select count(*) from FactOrderDetails; -- 7703 records
+select count(*) from DimCategories;
+select count(*) from DimSubCategories;
+select count(*) from DimProducts;
+select count(*) from DimCustomers;
+select count(*) from DimShipMode;
+select count(*) from DimLocations;
+select count(*) from DimOrders; 
+select count(*) from FactOrderDetails;
 
 
 

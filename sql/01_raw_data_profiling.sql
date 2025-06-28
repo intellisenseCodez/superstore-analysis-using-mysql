@@ -38,7 +38,7 @@ FROM RawSuperstore
 GROUP BY `Row ID` 
 HAVING COUNT(*) > 1; -- no duplicate exits
 
--- Checking Date Consistency (Ship Date before Order Date)
+-- Checking Date Consistency (Ship Date after Order Date)
 SELECT `Order ID`, `Order Date`, `Ship Date` 
 FROM RawSuperstore 
 WHERE STR_TO_DATE(`Ship Date`, '%d-%m-%Y') < STR_TO_DATE(`Order Date`, '%d-%m-%Y'); -- all order date occurred before ship date

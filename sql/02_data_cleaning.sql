@@ -42,6 +42,9 @@ CHANGE `Product ID` product_id VARCHAR(255),
 CHANGE `Sub-Category` sub_category VARCHAR(255),
 CHANGE `Product Name` product_name VARCHAR(255);
 
+-- rename a columne
+ALTER TABLE clean_superstore
+RENAME COLUMN old_name TO new_name;
 
 -- Cast Date Columns to appropriate type
 -- add new order date column
