@@ -1,4 +1,4 @@
--- Create the Superstore Relationonal database
+-- Use the Superstore Relationonal database
 USE Superstore;
 
 -- Table: DimCategories

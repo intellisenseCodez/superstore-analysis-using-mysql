@@ -1,4 +1,7 @@
 
+-- Use the Superstore Relationonal database
+USE Superstore;
+
 -- Create a Cleaned Copy of the Table
 CREATE TABLE clean_superstore AS
 SELECT * FROM rawsuperstore;

@@ -1,5 +1,8 @@
 
--- Insert distinct values of DimCategories with generated IDs
+-- Use the Superstore Relationonal database
+USE Superstore;
+
+-- Insert distinct values of DimCategories
 INSERT INTO DimCategories (category_name)
 SELECT DISTINCT Category
 FROM 
@@ -100,8 +103,8 @@ INSERT IGNORE INTO DimOrders (order_id, customer_id, order_date, ship_date, ship
 SELECT
     cs.order_id,
     cs.customer_id,
-    STR_TO_DATE(cs.order_date, '%d-%m-%Y') AS order_date,  -- Convert text to date
-    STR_TO_DATE(cs.ship_date, '%d-%m-%Y') AS ship_date,    -- Convert text to date
+    cs.order_date,
+    cs.ship_date,    
     s.shipmode_id,
     l.location_id
 FROM 
@@ -110,8 +113,8 @@ JOIN DimCustomers c ON cs.customer_id = c.customer_id
 JOIN DimShipMode s ON cs.ship_mode = s.ship_mode
 JOIN DimLocations l ON cs.postal_code = l.postal_code
 WHERE 
-    cs.order_id NOT IN (SELECT order_id FROM DimOrders);
-
+ cs.order_id NOT IN (SELECT order_id FROM DimOrders);
+ 
 
 -- Insert for FactOrderDetails
 INSERT INTO FactOrderDetails(order_id, product_id, quantity, sales, discount, profit)

@@ -1,3 +1,8 @@
+-- create a database
+CREATE DATABASE IF NOT EXISTS superstore;
+
+-- use database
+USE superstore;
 
 -- What columns are in the dataset?
 DESCRIBE rawsuperstore;
